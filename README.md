@@ -47,22 +47,22 @@ It provides enrollment and identification APIs powered by deep learning embeddin
 
 ## 🏗️ Architecture
 
-```
-[ Audio Input ]
-    |  (wav / mic)
-    v
-[ Embeddings ]
-    |-- Resemblyzer  (256-dim)
-    `-- ECAPA        (192-dim)
-        |
-        v
-[ Qdrant (vector DB) ]
-        |
-        v
-[ FastAPI ]
-    - /api/enroll
-    - /api/identify
-    - /api/rebuild_centroids
+```text
+   [ Audio Input ]
+      |  (wav / mic)
+      v
+   [ Embeddings ]
+      |-- Resemblyzer  (256-dim)
+      `-- ECAPA        (192-dim)
+         |
+         v
+   [ Qdrant (vector DB) ]
+         |
+         v
+   [ FastAPI ]
+      - /api/enroll
+      - /api/identify
+      - /api/rebuild_centroids
 ```
 
 ---
@@ -70,7 +70,8 @@ It provides enrollment and identification APIs powered by deep learning embeddin
 ## 🚀 Quickstart (Local)
 
 1. Start Qdrant:
-```bash
+
+```shell
 docker run -p 6333:6333 qdrant/qdrant
 ```
 
@@ -81,7 +82,8 @@ poetry run uvicorn app.main:APP --port 8080
 ```
 
 3. Test API:
-```bash
+
+```shell
 curl -F "file=@myvoice.wav" "http://127.0.0.1:8080/api/enroll?name=Alice"
 curl -F "file=@myvoice.wav" "http://127.0.0.1:8080/api/identify?threshold=0.82"
 ```
@@ -116,7 +118,7 @@ Environment variables:
 
 Unit tests are under `/tests`. Run with:
 
-```bash
+```shell
 poetry run pytest
 ```
 
