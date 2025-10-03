@@ -14,7 +14,7 @@ dist/
 .htmlcov/
 
 # Poetry
-poetry.lock
+!poetry.lock
 # (om du vill låsa: ta bort denna rad, men låt oss först få CI att rulla stabilt)
 
 # Virtualenvs (om du kör lokalt venv)
