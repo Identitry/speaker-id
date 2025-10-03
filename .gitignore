@@ -1,1 +1,51 @@
-# Python\n__pycache__/\n*.pyc\n.env\n.venv/\n\n# Node/Front\nnode_modules/\n\n# Poetry\npoetry.lock\n\n# Misc\n.DS_Store\n*.log\n
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.build/
+dist/
+.eggs/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.coverage*
+.htmlcov/
+
+# Poetry
+poetry.lock
+# (om du vill låsa: ta bort denna rad, men låt oss först få CI att rulla stabilt)
+
+# Virtualenvs (om du kör lokalt venv)
+.venv/
+
+# macOS & Editor
+.DS_Store
+.AppleDouble
+.LSOverride
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Caches
+.cache/
+**/.ruff_cache/
+
+# Local data
+data/
+tmp/
+
+# Models & checkpoints (om du råkar dumpa dem)
+pretrained_models/
+
+# Audio dumps
+*.wav
+*.mp3
+recordings/
+
+# Node (om/ när du bygger web)
+node_modules/
