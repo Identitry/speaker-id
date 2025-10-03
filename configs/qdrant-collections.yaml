@@ -1,0 +1,22 @@
+# speakers_raw/speakers_master definieras programmässigt i qdrant_repo.ensure_collections()\n
+# Reference configuration for Qdrant collections used by the service.
+# The service creates/updates these automatically at startup, but this file
+# documents the intended shapes and can be used for manual provisioning.
+
+collections:
+  - name: speakers_raw
+    vectors:
+      # Set to 256 for Resemblyzer, 192 for ECAPA (USE_ECAPA=true)
+      size: 256
+      distance: COSINE
+    payload_schema:
+      name: keyword  # speaker name
+
+  - name: speakers_master
+    vectors:
+      # Set to 256 for Resemblyzer, 192 for ECAPA (USE_ECAPA=true)
+      size: 256
+      distance: COSINE
+    payload_schema:
+      name: keyword  # speaker name
+      n: integer     # number of raw samples used to build the centroid

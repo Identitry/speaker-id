@@ -1,0 +1,20 @@
+
+Detta behöver vi ta tag i:
+1. Inställning för samplingsfrekvens stereo/mono
+2. Tester (alla tester är tomma)
+3. .gitignore
+4. LICENSE
+5. Städa upp onödigt
+6. Publicera källkod på Github
+7. Iterera all kod för ev. förbättringar
+8. Swagger, förbättra?
+9. Web UI, är allt med... kan vi hoppa mellan Resemblyzer och ECAPA som en inställning
+10. Web UI, få till ett riktigt snyggt gränssnitt (Ta hjälp av annan AI tjänst så som Lovable eller ?)
+11. WebUI, Thresholds som inställning?
+12. Loggning, prometheus endpoint?
+13. Bygga docker image
+14. Dokumentation, Readme, Env variables, API, HA integration, Qdrant, Latency...
+15. Ta fram exempel på att använda bjw-s App-Template helm chart för deploy till K8s
+16. Publicera docker image på GitHub (Action)
+17. Home Assistant Addon - kanske knöligt (HACS?)
+18. Något mer?

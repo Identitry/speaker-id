@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "speaker-id"
+version = "0.1.0"
+description = "Speaker identification with Resemblyzer/ECAPA + Qdrant + FastAPI + Web UI"
+authors = ["Henrik Nilsson <henrik@example.com>"]
+readme = "README.md"
+packages = [{ include = "app" }]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+fastapi = "^0.115.0"
+uvicorn = { extras = ["standard"], version = "^0.30.0" }
+resemblyzer = "^0.1.1"
+librosa = "^0.10.2"
+soundfile = "^0.12.1"
+qdrant-client = "^1.9.0"
+pydantic = "^2.8.0"
+numpy = "^1.26"
+requests = "^2.32.3"
+python-multipart = "^0.0.9"
+resampy = "^0.4.3"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+ruff = "^0.6.0"
+
+[tool.poetry.group.ecapa]
+optional = true
+
+[tool.poetry.group.ecapa.dependencies]
+speechbrain = "^0.5.16"
+torch = "^2.4.0"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "pypi"
+priority = "primary"

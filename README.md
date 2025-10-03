@@ -1,0 +1,1 @@
+# speaker-id\n\nResemblyzer/ECAPA + Qdrant + FastAPI + Web UI.\n

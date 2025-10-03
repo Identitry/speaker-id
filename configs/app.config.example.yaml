@@ -1,0 +1,37 @@
+# Application configuration example
+
+server:
+  # Server host address
+  host: "127.0.0.1"
+  # Server port number
+  port: 8080
+
+qdrant:
+  # Qdrant service URL
+  url: "http://localhost:6333"
+  # Qdrant collection name
+  collection_name: "speaker_vectors"
+  # Qdrant API key if authentication is needed
+  api_key: ""
+
+model:
+  # Model name or path
+  name: "speaker-embedding-model"
+  # Model version
+  version: "1.0.0"
+  # Path to model weights or files
+  path: "/models/speaker-embedding-model/"
+
+thresholds:
+  # Similarity threshold for speaker verification
+  similarity: 0.75
+  # Confidence threshold for speaker identification
+  confidence: 0.85
+
+logging:
+  # Logging level (e.g. DEBUG, INFO, WARNING, ERROR)
+  level: "INFO"
+  # Log file path
+  file: "/var/log/speaker-id/app.log"
+  # Enable console logging
+  console: true
