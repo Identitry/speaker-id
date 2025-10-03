@@ -47,11 +47,22 @@ It provides enrollment and identification APIs powered by deep learning embeddin
 
 ## 🏗️ Architecture
 
-```mermaid
-flowchart LR
-    A[Audio Input<br/>(File / Microphone)] --> B[Embeddings Engine<br/>(Resemblyzer / ECAPA)]
-    B --> C[Qdrant<br/>(Vector Database)]
-    C --> D[FastAPI Endpoints<br/>- /api/enroll<br/>- /api/identify<br/>- /api/rebuild]
+```
+[ Audio Input ]
+    |  (wav / mic)
+    v
+[ Embeddings ]
+    |-- Resemblyzer  (256-dim)
+    `-- ECAPA        (192-dim)
+        |
+        v
+[ Qdrant (vector DB) ]
+        |
+        v
+[ FastAPI ]
+    - /api/enroll
+    - /api/identify
+    - /api/rebuild_centroids
 ```
 
 ---
