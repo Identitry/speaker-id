@@ -2,6 +2,41 @@ import numpy as np
 import soundfile as sf
 import resampy
 
+# Helper function to centralize channel and sample rate policy based on settings
+def _apply_channel_and_sr_policy(wav: np.ndarray, sr: int) -> tuple[np.ndarray, int]:
+    """
+    Apply channel and sample rate normalization policy based on global settings.
+
+    Ensures waveform is mono or stereo as per settings:
+    - If force_mono is True, average all channels to mono.
+    - Else if single channel, squeeze to 1D.
+    - Else if stereo not accepted, take left channel only.
+    - Else (stereo accepted), still average to mono because most speaker encoders expect mono.
+    Resamples waveform if sample rate differs from settings.sample_rate.
+    """
+    from app.core.config import settings
+
+    if wav.ndim == 1:
+        wav = wav[:, None]  # reshape to (N,1) for consistent logic
+
+    if settings.force_mono:
+        wav = wav.mean(axis=1)
+    else:
+        if wav.shape[1] == 1:
+            wav = wav[:, 0]
+        else:
+            if not settings.accept_stereo:
+                wav = wav[:, 0]  # left channel only
+            else:
+                # Most speaker encoders expect mono; averaging preserves energy reasonably.
+                wav = wav.mean(axis=1)
+
+    if sr != settings.sample_rate:
+        wav = resampy.resample(wav, sr, settings.sample_rate)
+        sr = settings.sample_rate
+
+    return wav.astype("float32"), sr
+
 def basic_wav_stats(wav_path):
     """
     Get basic statistics of a WAV file: sample rate, number of channels, and duration in seconds.
@@ -57,7 +92,7 @@ def load_wav(wav_path, target_sr=16000):
     if sample_rate != target_sr:
         waveform = resampy.resample(waveform, sample_rate, target_sr)
         sample_rate = target_sr
-    return waveform, sample_rate
+    return waveform.astype("float32"), sample_rate
 
 def save_wav(waveform, wav_path, sample_rate):
     """
@@ -71,6 +106,9 @@ def save_wav(waveform, wav_path, sample_rate):
     # Ensure waveform is 1D numpy array
     if waveform.ndim != 1:
         raise ValueError("Only mono waveforms (1D numpy arrays) are supported for saving.")
+    # Ensure values are in [-1.0, 1.0] and dtype float32 before writing
+    waveform = np.asarray(waveform, dtype="float32")
+    waveform = np.clip(waveform, -1.0, 1.0)
     sf.write(wav_path, waveform, sample_rate)
 
 
@@ -82,35 +120,15 @@ import io
 def load_wav_normalized_from_bytes(data: bytes) -> np.ndarray:
     """Load audio bytes and normalize channels + sample rate according to settings.
 
-    Policy (from Settings):
-    - If `force_mono` is True: always average to mono.
-    - Else if stereo and `accept_stereo` is False: take left channel.
-    - Else: average to mono (most speaker encoders expect mono).
-    - Finally, resample to `sample_rate` if needed.
+    Uses centralized policy function to handle mono/stereo and resampling.
+    Returns mono waveform as float32 numpy array.
     """
-    # Read as float32, always_2d=True to keep (frames, channels)
     with sf.SoundFile(io.BytesIO(data)) as f:
         wav = f.read(always_2d=True, dtype="float32")
         sr = f.samplerate
 
-    # Channel policy
-    if settings.force_mono:
-        wav = wav.mean(axis=1)
-    else:
-        if wav.shape[1] == 1:
-            wav = wav[:, 0]
-        else:
-            if not settings.accept_stereo:
-                wav = wav[:, 0]  # left channel only
-            else:
-                # Most encoders expect mono; averaging preserves energy reasonably.
-                wav = wav.mean(axis=1)
-
-    # Resample if sample rate differs
-    if sr != settings.sample_rate:
-        wav = resampy.resample(wav, sr, settings.sample_rate)
-
-    return wav.astype("float32")
+    wav, _ = _apply_channel_and_sr_policy(wav, sr)
+    return wav
 
 
 def load_wav_file_with_settings(wav_path: str) -> tuple[np.ndarray, int]:
@@ -121,19 +139,5 @@ def load_wav_file_with_settings(wav_path: str) -> tuple[np.ndarray, int]:
         wav = f.read(always_2d=True, dtype="float32")
         sr = f.samplerate
 
-    if settings.force_mono:
-        wav = wav.mean(axis=1)
-    else:
-        if wav.shape[1] == 1:
-            wav = wav[:, 0]
-        else:
-            if not settings.accept_stereo:
-                wav = wav[:, 0]
-            else:
-                wav = wav.mean(axis=1)
-
-    if sr != settings.sample_rate:
-        wav = resampy.resample(wav, sr, settings.sample_rate)
-        sr = settings.sample_rate
-
-    return wav.astype("float32"), sr
+    wav, sr = _apply_channel_and_sr_policy(wav, sr)
+    return wav, sr

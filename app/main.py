@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse
@@ -10,19 +11,18 @@ from starlette.responses import Response
 from app.api import router as api_router
 from app.core.lifecycle import on_startup, on_shutdown
 
-# FastAPI app instance
-APP = FastAPI(title="speaker-id")
-
-
-# ----- Lifecycle hooks -----
-@APP.on_event("startup")
-async def _startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await on_startup()
+    try:
+        yield
+    finally:
+        await on_shutdown()
+
+# FastAPI app instance
+APP = FastAPI(title="speaker-id", lifespan=lifespan)
 
 
-@APP.on_event("shutdown")
-async def _shutdown() -> None:
-    await on_shutdown()
 
 
 # ----- Static web UI -----
@@ -40,7 +40,7 @@ def index() -> Response:
 
 
 # ----- Health endpoints -----
-@APP.get("/health")
+@APP.get("/health", tags=["health"])
 def root_health() -> dict:
     """Root liveness endpoint (outside /api)."""
     return {"status": "ok"}

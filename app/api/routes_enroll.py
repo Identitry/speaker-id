@@ -17,14 +17,59 @@ In production, secure these endpoints appropriately (e.g., API key, OAuth).
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, UploadFile, File, Query
+from fastapi import APIRouter, UploadFile, File, Query, HTTPException
 
 from app.utils.audio import load_wav_normalized_from_bytes
-from app.embeddings import get_encoder
+import os
+from app.services.embeddings import get_encoder
 
 from app.services.qdrant_repo import upsert_raw_and_update_master
 from app.schemas.common import EnrollResponse, Message
-router = APIRouter(prefix="/api", tags=["Enroll"])
+router = APIRouter()
+
+
+def _run_embedding(encoder, wav):
+    """Robustly compute an embedding regardless of backend signature.
+
+    Tries, in order:
+    - callable encoders: (wav, sr) then (wav)
+    - object encoders: .embed_vector(wav, sr) -> (wav)
+    - object encoders: .embed_utterance(wav, sr) -> (wav)
+    """
+    sr = int(os.getenv("SAMPLE_RATE", "16000"))
+
+    # 1) If encoder is directly callable
+    if callable(encoder):
+        if sr is not None:
+            try:
+                return encoder(wav, sr)
+            except TypeError:
+                pass
+        try:
+            return encoder(wav)
+        except TypeError:
+            pass
+
+    # 2) Methods on an encoder object
+    if hasattr(encoder, "embed_vector"):
+        fn = getattr(encoder, "embed_vector")
+        if sr is not None:
+            try:
+                return fn(wav, sr)
+            except TypeError:
+                pass
+        return fn(wav)
+
+    if hasattr(encoder, "embed_utterance"):
+        fn = getattr(encoder, "embed_utterance")
+        if sr is not None:
+            try:
+                return fn(wav, sr)
+            except TypeError:
+                pass
+        return fn(wav)
+
+    raise RuntimeError("Unsupported encoder interface")
 
 
 @router.post("/enroll", response_model=EnrollResponse)
@@ -57,7 +102,12 @@ async def enroll(
     # Normalize channels/sample rate according to runtime settings
     wav = load_wav_normalized_from_bytes(data)
     # Embed with selected backend (ECAPA when USE_ECAPA=true, else Resemblyzer)
-    vec = get_encoder().embed_vector(wav)
+    encoder = get_encoder()
+    try:
+        vec = _run_embedding(encoder, wav)
+    except Exception as e:
+        # Align error messaging with identify route for consistency
+        raise HTTPException(status_code=500, detail=str(e) or "Failed to compute embedding for audio")
     upsert_raw_and_update_master(name=name, vec=vec)
     return {"ok": True, "name": name}
 
