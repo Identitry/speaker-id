@@ -1,6 +1,6 @@
 # speaker-id
 
-Speaker identification service for Home Assistant & edge setups.
+Speaker identification service for Home Assistant & Edge setups.
 - Embeddings: Resemblyzer (256) or ECAPA (192) via SpeechBrain
 - Vector DB: Qdrant
 - API: FastAPI
