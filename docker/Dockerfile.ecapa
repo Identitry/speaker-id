@@ -16,6 +16,9 @@ RUN pip install --no-cache-dir poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-root --no-interaction --no-ansi --only main --with ecapa
 
+# Pre-download ECAPA model from HuggingFace to avoid first-request delay
+RUN python -c "from speechbrain.pretrained import EncoderClassifier; EncoderClassifier.from_hparams(source='speechbrain/spkrec-ecapa-voxceleb', savedir='pretrained_models/ecapa', run_opts={'device': 'cpu'})"
+
 # Final stage
 FROM python:3.11-slim
 
@@ -30,6 +33,10 @@ WORKDIR /app
 # Copy Python packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy ECAPA model cache from builder
+COPY --from=builder /root/.cache/huggingface /root/.cache/huggingface
+COPY --from=builder /app/pretrained_models /app/pretrained_models
 
 # Copy application code
 COPY app /app/app

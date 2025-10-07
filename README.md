@@ -76,6 +76,8 @@ This is the easiest way to get started. It installs both Speaker-ID and the requ
 
 That's it! The service is now running on port 8080.
 
+**Note**: The AI model is pre-downloaded during Docker build, so the service is ready immediately with no first-request delays.
+
 ### Option 2: Docker (Manual)
 
 If you prefer more control or already have a Qdrant database:
@@ -327,9 +329,11 @@ When identifying a speaker, you get a **confidence score** between 0 and 1:
 ## 📚 Documentation
 
 - **[API Reference](docs/api.md)** - Complete API documentation with examples
-- **[Home Assistant Integration](docs/ha-integration.md)** - Detailed integration guide
+- **[Home Assistant Integration](docs/ha-integration.md)** - Detailed integration guide with Assist Pipeline
+- **[AI Models Guide](docs/models.md)** - Model selection, performance, and troubleshooting
 - **[Solution Details](docs/solution_details.md)** - How it works under the hood
-- **[Deployment Guide](docs/deployment.md)** - Advanced deployment options
+- **[Deployment Guide](docs/deployment.md)** - Production deployment options
+- **[Qdrant Database](docs/qdrant.md)** - Database management and backups
 
 ---
 

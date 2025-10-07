@@ -16,6 +16,9 @@ RUN pip install --no-cache-dir poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-root --no-interaction --no-ansi --only main
 
+# Pre-download Resemblyzer model to avoid first-request delay
+RUN python -c "from resemblyzer import VoiceEncoder; VoiceEncoder()"
+
 # Final stage
 FROM python:3.11-slim
 
@@ -30,6 +33,9 @@ WORKDIR /app
 # Copy Python packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy Resemblyzer model cache from builder
+COPY --from=builder /root/.torch /root/.torch
 
 # Copy application code
 COPY app /app/app
