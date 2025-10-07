@@ -89,12 +89,22 @@ If you prefer more control or already have a Qdrant database:
 
 2. **Start Speaker-ID**:
    ```bash
+   # Use Resemblyzer (default - faster, lower memory)
    docker run -d \
      -p 8080:8080 \
      -e QDRANT_URL=http://qdrant:6333 \
      --name speaker-id \
      --link qdrant \
-     ghcr.io/YOUR-REPO/speaker-id:latest
+     ghcr.io/identitry/speaker-id:latest
+
+   # Or use ECAPA model (more accurate)
+   docker run -d \
+     -p 8080:8080 \
+     -e QDRANT_URL=http://qdrant:6333 \
+     -e USE_ECAPA=true \
+     --name speaker-id \
+     --link qdrant \
+     ghcr.io/identitry/speaker-id:latest
    ```
 
 ---
@@ -251,19 +261,32 @@ See the [full integration guide](docs/ha-integration.md) for all methods and det
 
 ### Choosing a Model
 
-**Resemblyzer** (Default):
-- ✅ Faster
-- ✅ Lower memory usage
+The Docker image includes **both models** - you choose which one to use at runtime with the `USE_ECAPA` environment variable.
+
+**Resemblyzer** (Default: `USE_ECAPA=false`):
+- ✅ Faster inference (~100ms)
+- ✅ Lower memory usage (~500 MB)
 - ✅ Good for Raspberry Pi
-- ⚠️ Slightly less accurate
+- ✅ Good accuracy for most use cases
+- ⚠️ Slightly less accurate than ECAPA
 
-**ECAPA** (Advanced):
-- ✅ More accurate
+**ECAPA-TDNN** (Set `USE_ECAPA=true`):
+- ✅ Significantly more accurate
 - ✅ Better with noisy audio
-- ⚠️ Requires more CPU/RAM
-- ⚠️ Larger Docker image
+- ✅ Better discrimination between similar voices
+- ⚠️ Requires more CPU/RAM (~1.5 GB)
+- ⚠️ Slower inference (~300ms)
 
-To use ECAPA, set `USE_ECAPA=true` when starting the container.
+**Switch models anytime:**
+```bash
+# Stop current container
+docker stop speaker-id && docker rm speaker-id
+
+# Start with ECAPA
+docker run -d -e USE_ECAPA=true ... ghcr.io/identitry/speaker-id:latest
+```
+
+**Important**: When switching models, you must **re-enroll all speakers** as embeddings are incompatible between models.
 
 ---
 

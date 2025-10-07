@@ -13,15 +13,17 @@ WORKDIR /app
 # Copy dependency files
 COPY pyproject.toml poetry.lock* /app/
 
-# Install poetry and dependencies
+# Install poetry and dependencies including BOTH models
 RUN pip install --no-cache-dir poetry && \
     poetry config virtualenvs.create false && \
-    poetry install --no-root --no-interaction --no-ansi --only main
+    poetry install --no-root --no-interaction --no-ansi --without dev --with ecapa
 
-# Pre-download Resemblyzer model to avoid first-request delay
-RUN python -c "from resemblyzer import VoiceEncoder; VoiceEncoder()" && \
-    echo "Model cache created at:" && \
-    find /root -name "*.pt" -o -name "*.pth" 2>/dev/null || echo "No .pt files found"
+# Pre-download BOTH models to avoid first-request delay
+# User can choose which to use via USE_ECAPA environment variable
+RUN echo "Downloading Resemblyzer model..." && \
+    python -c "from resemblyzer import VoiceEncoder; VoiceEncoder()" && \
+    echo "Downloading ECAPA model..." && \
+    python -c "from speechbrain.pretrained import EncoderClassifier; EncoderClassifier.from_hparams(source='speechbrain/spkrec-ecapa-voxceleb', savedir='pretrained_models/ecapa', run_opts={'device': 'cpu'})"
 
 # Final stage - use distroless-style minimal image
 FROM python:3.11-slim
@@ -57,8 +59,13 @@ RUN python -m compileall -q /app/app
 
 # Environment variables
 ENV TORCH_HOME=/root/.torch \
+    HF_HOME=/root/.cache/huggingface \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
+
+# Default to Resemblyzer (faster, lower memory)
+# Users can override with: docker run -e USE_ECAPA=true ...
+ENV USE_ECAPA=false
 
 # Expose port
 EXPOSE 8080

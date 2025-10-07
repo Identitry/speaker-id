@@ -12,20 +12,27 @@ services:
       retries: 5
 
   speaker-id:
-    # Option 1: Use pre-built image from GitHub Container Registry (recommended)
-    image: ghcr.io/Identitry/speaker-id:latest
+    # Use unified image with both Resemblyzer and ECAPA models
+    # Switch between models using USE_ECAPA environment variable
+    image: ghcr.io/identitry/speaker-id:latest
 
-    # Option 2: Build locally (uncomment to use)
+    # Option: Build locally (uncomment to use)
     # build:
     #   context: ..
     #   dockerfile: docker/Dockerfile
 
     environment:
       - QDRANT_URL=http://qdrant:6333
+      # Model selection: false = Resemblyzer (default, faster), true = ECAPA (more accurate)
       - USE_ECAPA=false
+      # Audio preprocessing (all enabled by default for better accuracy)
+      - AUDIO_ENHANCEMENT=true
+      - SELECT_BEST_SEGMENT=true
+      - SCORE_CALIBRATION=true
+      - MIN_AUDIO_DURATION=1.0
+      # Other settings
       - SAMPLE_RATE=16000
-      - FORCE_MONO=true
-      - ACCEPT_STEREO=true
+      - DEFAULT_THRESHOLD=0.82
       - LOG_LEVEL=INFO
     ports:
       - "8080:8080"

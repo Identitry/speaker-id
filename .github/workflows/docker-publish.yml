@@ -22,17 +22,7 @@ jobs:
       contents: read
       packages: write
 
-    strategy:
-      fail-fast: false
-      max-parallel: 1  # Build one image at a time to save disk space
-      matrix:
-        include:
-          - dockerfile: docker/Dockerfile
-            image-suffix: ""
-            platforms: linux/amd64,linux/arm64
-          - dockerfile: docker/Dockerfile.ecapa
-            image-suffix: -ecapa
-            platforms: linux/amd64,linux/arm64
+    # No matrix needed - single unified image with both models
 
     steps:
       - name: Checkout repository
@@ -74,7 +64,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image-suffix }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -88,8 +78,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
-          platforms: ${{ matrix.platforms }}
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -107,9 +97,13 @@ jobs:
       - name: Generate image summary
         if: github.event_name != 'pull_request'
         run: |
-          echo "### Docker Images Published :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Image Published :rocket:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image**: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image-suffix }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Unified image with both Resemblyzer and ECAPA models**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image**: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Platforms**: linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tags**:" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -118,5 +112,14 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pull command**:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image-suffix }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Usage**:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# Use Resemblyzer (default - faster, lower memory)" >> $GITHUB_STEP_SUMMARY
+          echo "docker run -p 8080:8080 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Use ECAPA (more accurate)" >> $GITHUB_STEP_SUMMARY
+          echo "docker run -p 8080:8080 -e USE_ECAPA=true ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
