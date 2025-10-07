@@ -1,1 +1,33 @@
-services:\n  qdrant:\n    image: qdrant/qdrant:latest\n    ports: ["6333:6333"]\n    volumes:\n      - qdrant-data:/qdrant/storage\n  app:\n    build:\n      context: ..\n      dockerfile: docker/Dockerfile\n    environment:\n      - QDRANT_URL=http://qdrant:6333\n    ports: ["8080:8080"]\n    depends_on: [qdrant]\nvolumes:\n  qdrant-data:\n
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  speaker-id:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - USE_ECAPA=false
+      - SAMPLE_RATE=16000
+      - FORCE_MONO=true
+      - ACCEPT_STEREO=true
+      - LOG_LEVEL=INFO
+    ports:
+      - "8080:8080"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  qdrant-data:

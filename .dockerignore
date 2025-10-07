@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+README.md
+CLAUDE.md
+LICENSE
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+compose.yaml
+.dockerignore
+
+# Misc
+.DS_Store
+*.log
+*.wav
+*.mp3
+pretrained_models/
+scripts/
+tests/
+deploy/
+_TODO.txt
+
+# Keep only necessary files
+!pyproject.toml
+!poetry.lock
+!app/
