@@ -455,7 +455,7 @@ poetry run pytest
 poetry run uvicorn app.main:APP --reload
 ```
 
-See [CLAUDE.md](CLAUDE.md) for detailed development documentation.
+See [solution_details.md](/docs/solution_details.md) or [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development documentation.
 
 ---
 
