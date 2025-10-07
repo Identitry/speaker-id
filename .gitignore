@@ -12,6 +12,7 @@ dist/
 .pytest_cache/
 .coverage*
 .htmlcov/
+.claude
 
 # Poetry
 !poetry.lock

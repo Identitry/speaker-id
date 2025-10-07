@@ -34,6 +34,18 @@ class Settings:
     topk: int = int(os.getenv("TOPK", "5"))
     use_ecapa: bool = os.getenv("USE_ECAPA", "false").lower() == "true"
 
+    # Audio preprocessing settings
+    # Enable advanced audio enhancement (VAD, normalization, pre-emphasis) for better confidence
+    audio_enhancement: bool = os.getenv("AUDIO_ENHANCEMENT", "true").lower() == "true"
+    # Select best speech segment (most energetic 3 seconds) from longer recordings
+    select_best_segment: bool = os.getenv("SELECT_BEST_SEGMENT", "true").lower() == "true"
+    # Minimum audio duration in seconds (after VAD trimming)
+    min_audio_duration: float = float(os.getenv("MIN_AUDIO_DURATION", "1.0"))
+
+    # Score calibration settings
+    # Enable score calibration to improve discrimination between matches
+    score_calibration: bool = os.getenv("SCORE_CALIBRATION", "true").lower() == "true"
+
 
     # Logging verbosity for the service (DEBUG/INFO/WARNING/ERROR).
     log_level: str = os.getenv("LOG_LEVEL", "INFO")

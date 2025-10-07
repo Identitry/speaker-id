@@ -241,6 +241,10 @@ See the [full integration guide](docs/ha-integration.md) for all methods and det
 |----------|---------|-------------|
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant database connection |
 | `USE_ECAPA` | `false` | Use advanced ECAPA model (more accurate, slower) |
+| `AUDIO_ENHANCEMENT` | `true` | Master switch: enable all audio preprocessing |
+| `SELECT_BEST_SEGMENT` | `true` | Select most energetic 3-second segment |
+| `SCORE_CALIBRATION` | `true` | Calibrate similarity scores for better discrimination |
+| `MIN_AUDIO_DURATION` | `1.0` | Minimum audio duration in seconds |
 | `SAMPLE_RATE` | `16000` | Audio sample rate (16kHz recommended) |
 | `DEFAULT_THRESHOLD` | `0.82` | Confidence threshold (0-1, higher = stricter) |
 | `LOG_LEVEL` | `INFO` | Logging verbosity (DEBUG/INFO/WARNING) |
@@ -275,6 +279,59 @@ When identifying a speaker, you get a **confidence score** between 0 and 1:
 **Default threshold is 0.82** - you can adjust based on your needs:
 - **Higher threshold** (0.90): Fewer false positives, but might miss correct identifications
 - **Lower threshold** (0.70): More identifications, but more false positives
+
+### 🚀 Improving Confidence Scores
+
+If you're getting lower confidence scores than expected, try these improvements:
+
+**1. Use ECAPA-TDNN Model** (Most Impactful)
+```bash
+# Docker
+docker run -e USE_ECAPA=true ...
+
+# Docker Compose
+environment:
+  - USE_ECAPA=true
+```
+ECAPA is significantly more accurate than the default Resemblyzer model, especially in noisy conditions.
+
+**2. Enroll Multiple Samples** (Critical)
+- Enroll **5-10 samples per person** (not just 1-2)
+- Use different sentences and speaking styles
+- The system averages all samples to create a more robust profile
+
+**3. Audio Enhancement** (Enabled by Default)
+The system automatically applies multiple advanced preprocessing techniques:
+
+- **Voice Activity Detection (VAD)**: Removes silence and non-speech segments
+- **Smart Segment Selection**: Automatically selects the best 3-second segment based on energy (for recordings > 3.5s)
+- **Normalization**: Ensures consistent volume levels across all recordings
+- **Pre-emphasis**: Boosts high frequencies that are critical for speaker characteristics
+- **Score Calibration**: Improves discrimination when similarity scores are compressed
+
+Configure these features:
+```bash
+# All enabled by default
+AUDIO_ENHANCEMENT=true        # Master switch for all audio processing
+SELECT_BEST_SEGMENT=true      # Select most energetic segment
+SCORE_CALIBRATION=true        # Calibrate similarity scores
+MIN_AUDIO_DURATION=1.0        # Minimum seconds of speech required
+```
+
+**4. Audio Quality Tips**
+- Record in a quiet environment
+- Speak clearly at normal volume
+- Avoid background music or TV
+- Use a decent microphone (phone mic is usually fine)
+- Ensure 3-5 seconds of actual speech (not just silence)
+
+**5. Re-enroll After System Changes**
+If you change models (Resemblyzer ↔ ECAPA), you must re-enroll all speakers as the embeddings are incompatible.
+
+**Expected Confidence Ranges:**
+- With ECAPA + 5+ samples: **0.85-0.95** for correct matches
+- With Resemblyzer + 3 samples: **0.75-0.88** for correct matches
+- Lower scores suggest: similar voices, poor audio quality, or insufficient training samples
 
 ---
 

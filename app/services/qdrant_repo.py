@@ -29,7 +29,7 @@ from typing import List
 from uuid import uuid4
 
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams, PointStruct
+from qdrant_client.http.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue, FilterSelector, PointIdsList
 
 from app.core.config import settings
 from app.core.logging import logger
@@ -151,15 +151,17 @@ def reset_profiles(name: str | None = None, drop_all: bool = False) -> None:
     # Delete all raw points where payload.name == name
     _client.delete(
         collection_name=RAW,
-        points_selector={
-            "filter": {"must": [{"key": "name", "match": {"value": name}}]}
-        },
+        points_selector=FilterSelector(
+            filter=Filter(
+                must=[FieldCondition(key="name", match=MatchValue(value=name))]
+            )
+        ),
     )
 
     # Delete the single master point (stable id derived from name)
     _client.delete(
         collection_name=MASTER,
-        points_selector={"points": [_def_id(name)]},
+        points_selector=PointIdsList(points=[_def_id(name)]),
     )
 
 
@@ -175,8 +177,6 @@ def rebuild_master_for(name: str) -> int:
     ensure_collections()
 
     # Build a filter to scroll only this user's raw points.
-    from qdrant_client.http.models import Filter, FieldCondition, MatchValue
-
     flt = Filter(must=[FieldCondition(key="name", match=MatchValue(value=name))])
 
     # Fetch up to 10k raw points for this user. If you expect more, implement

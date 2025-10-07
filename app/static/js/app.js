@@ -42,6 +42,8 @@ function initializeTabs() {
             // Load tab-specific data
             if (targetTab === 'manage') {
                 loadSpeakers();
+            } else if (targetTab === 'enroll') {
+                populateSpeakerDatalist();
             } else if (targetTab === 'settings') {
                 loadSettings();
             }
@@ -376,6 +378,9 @@ async function enrollSpeaker() {
             showSuccess('enrollResult', 'Enrollment Successful',
                 `${data.name} has been enrolled with ${data.samples} sample(s). For best results, enroll 3-5 samples per person.`);
 
+            // Refresh the speaker datalist
+            populateSpeakerDatalist();
+
             // Reset form
             document.getElementById('enrollName').value = '';
             document.getElementById('enrollFileName').textContent = '';
@@ -460,6 +465,26 @@ async function loadSpeakers() {
         }
     } catch (error) {
         speakersList.innerHTML = '<div class="loading">Failed to load speakers. Server may be offline.</div>';
+    }
+}
+
+async function populateSpeakerDatalist() {
+    const datalist = document.getElementById('existingSpeakers');
+
+    try {
+        const response = await fetch('/api/profiles');
+        const data = await response.json();
+
+        if (response.ok && data.profiles && data.profiles.length > 0) {
+            datalist.innerHTML = data.profiles.map(name =>
+                `<option value="${name}">`
+            ).join('');
+        } else {
+            datalist.innerHTML = '';
+        }
+    } catch (error) {
+        console.error('Failed to load speakers for datalist:', error);
+        datalist.innerHTML = '';
     }
 }
 

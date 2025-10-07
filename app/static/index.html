@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Speaker-ID - Voice Recognition System</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
@@ -157,8 +158,11 @@
                         Speaker Name
                         <span class="required">*</span>
                     </label>
-                    <input type="text" id="enrollName" placeholder="Enter speaker name..." class="text-input">
-                    <small>Use a unique name for each person (e.g., "Alice", "Bob")</small>
+                    <input type="text" id="enrollName" list="existingSpeakers" placeholder="Enter or select speaker name..." class="text-input" autocomplete="off">
+                    <datalist id="existingSpeakers">
+                        <!-- Populated dynamically from API -->
+                    </datalist>
+                    <small>Select existing speaker to add more samples, or enter new name</small>
                 </div>
 
                 <div class="input-methods">
