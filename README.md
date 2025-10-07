@@ -477,11 +477,11 @@ Perfect for Grafana dashboards!
 - [x] Docker deployment
 - [x] Prometheus metrics
 - [x] Web UI for testing
-- [ ] Home Assistant Add-on
-- [ ] Kubernetes Helm chart
-- [ ] Multi-language support
+- [ ] Home Assistant Add-on (maybe)
+- [ ] Multi-language support (if requested)
 - [ ] Real-time audio streaming
 - [ ] Speaker diarization (who spoke when)
+- [ ] MCP Server for allowing additional integrations
 
 ---
 
@@ -494,6 +494,8 @@ Contributions are welcome! Please:
 3. Make your changes
 4. Add tests if applicable
 5. Submit a pull request
+
+Check [CONTRIBUTING.md](CONTRIBUTING.md) for details
 
 ---
 
