@@ -55,7 +55,6 @@ pretrained_models/
 scripts/
 tests/
 deploy/
-_TODO.txt
 
 # Keep only necessary files
 !pyproject.toml

@@ -4,12 +4,25 @@ on:
   push:
     branches:
       - main
+    # Only trigger on changes to code/docker files, not docs/config
+    paths:
+      - 'app/**'
+      - 'docker/**'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+      - '.github/workflows/docker-publish.yml'
     tags:
       - 'v*'
   pull_request:
     branches:
       - main
-  workflow_dispatch:
+    paths:
+      - 'app/**'
+      - 'docker/**'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+      - '.github/workflows/docker-publish.yml'
+  workflow_dispatch:  # Allow manual triggering anytime
 
 env:
   REGISTRY: ghcr.io

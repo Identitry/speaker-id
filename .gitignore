@@ -16,10 +16,10 @@ dist/
 
 # Poetry
 !poetry.lock
-# (om du vill låsa: ta bort denna rad, men låt oss först få CI att rulla stabilt)
 
-# Virtualenvs (om du kör lokalt venv)
+# Virtualenvs
 .venv/
+venv/
 
 # macOS & Editor
 .DS_Store
@@ -40,7 +40,7 @@ logs/
 data/
 tmp/
 
-# Models & checkpoints (om du råkar dumpa dem)
+# Models & checkpoints
 pretrained_models/
 
 # Audio dumps
@@ -48,10 +48,11 @@ pretrained_models/
 *.mp3
 recordings/
 
-# Node (om/ när du bygger web)
+# Node modules
 node_modules/
 
-# Claude documentation.
+# Environment variables (real config, not the example)
+.env
+
+# Development documentation (for contributors/maintainers only)
 CLAUDE.md
-PUBLISHING.md
-github-registry.md

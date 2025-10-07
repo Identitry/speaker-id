@@ -1,8 +1,0 @@
-
-Detta behöver vi ta tag i:
-5. Städa upp onödigt
-7. Iterera all kod för ev. förbättringar
-13. Bygga docker image
-15. Ta fram exempel på att använda bjw-s App-Template helm chart för deploy till K8s
-16. Publicera docker image på GitHub (Action)
-17. Home Assistant Addon - kanske knöligt (HACS?)

@@ -4,6 +4,31 @@ Production deployment options for Speaker-ID.
 
 ---
 
+## Docker Images
+
+**Official Images**: Available on GitHub Container Registry (GHCR)
+
+```bash
+# Pull the latest image (includes both Resemblyzer and ECAPA models)
+docker pull ghcr.io/identitry/speaker-id:latest
+```
+
+**Platforms**: linux/amd64, linux/arm64
+
+**Tags**:
+- `latest` - Latest stable build from main branch
+- `v1.0.0` - Specific version tags
+- `main-<commit-sha>` - Commit-specific builds
+
+**Model Selection**:
+- Default: Resemblyzer (faster, lower memory)
+- Set `USE_ECAPA=true` for ECAPA-TDNN (more accurate)
+
+**Automatic Publishing**:
+Images are automatically built and published via GitHub Actions when code changes are pushed to the repository.
+
+---
+
 ## Docker Compose (Recommended)
 
 Easiest production deployment with automatic restarts and data persistence.
@@ -25,12 +50,14 @@ services:
     restart: unless-stopped
 
   speaker-id:
-    image: ghcr.io/YOUR-REPO/speaker-id:latest
+    image: ghcr.io/identitry/speaker-id:latest
     ports:
       - "8080:8080"
     environment:
       - QDRANT_URL=http://qdrant:6333
-      - USE_ECAPA=false
+      - USE_ECAPA=false  # Set to true for ECAPA model
+      - AUDIO_ENHANCEMENT=true
+      - SCORE_CALIBRATION=true
       - LOG_LEVEL=INFO
     depends_on:
       qdrant:
@@ -54,20 +81,22 @@ For large-scale deployments.
 replicaCount: 2
 
 image:
-  repository: ghcr.io/YOUR-REPO/speaker-id
+  repository: ghcr.io/identitry/speaker-id
   tag: latest
 
 env:
   QDRANT_URL: "http://qdrant:6333"
-  USE_ECAPA: "false"
+  USE_ECAPA: "false"  # Set to "true" for ECAPA model
+  AUDIO_ENHANCEMENT: "true"
+  SCORE_CALIBRATION: "true"
 
 resources:
   limits:
     cpu: "1000m"
-    memory: "512Mi"
+    memory: "1Gi"  # Increase if using ECAPA
   requests:
     cpu: "500m"
-    memory: "256Mi"
+    memory: "512Mi"
 ```
 
 ---
