@@ -1,3 +1,4 @@
+#routes_identify.py
 """Identification endpoints for the speaker-id API.
 
 This router exposes the primary public-facing endpoints:
@@ -248,14 +249,10 @@ async def identify(
                         METRICS.REQUEST_TOTAL.labels(status="200", **_labels).inc()
                     except Exception:
                         METRICS.REQUEST_TOTAL.inc()
-                if hasattr(METRICS, "IDENTIFY_MATCH"):
+                # Use custom collector API to record the match under a single metric family
+                if hasattr(METRICS, "inc_identify_match"):
                     try:
-                        METRICS.IDENTIFY_MATCH.labels(speaker=best.get("name", "unknown")).inc()
-                    except Exception:
-                        METRICS.IDENTIFY_MATCH.inc()
-                if hasattr(METRICS, "IDENTIFY_MATCH_TOTAL"):
-                    try:
-                        METRICS.IDENTIFY_MATCH_TOTAL.inc()
+                        METRICS.inc_identify_match(best.get("name", "unknown"))
                     except Exception:
                         pass
                 if hasattr(METRICS, "REQUEST_LATENCY"):
@@ -294,14 +291,10 @@ async def identify(
                         METRICS.REQUEST_TOTAL.labels(status="200", **_labels).inc()
                     except Exception:
                         METRICS.REQUEST_TOTAL.inc()
-                if hasattr(METRICS, "IDENTIFY_MATCH"):
+                # Use custom collector API to record the match under a single metric family
+                if hasattr(METRICS, "inc_identify_match"):
                     try:
-                        METRICS.IDENTIFY_MATCH.labels(speaker=best.get("name", "unknown")).inc()
-                    except Exception:
-                        METRICS.IDENTIFY_MATCH.inc()
-                if hasattr(METRICS, "IDENTIFY_MATCH_TOTAL"):
-                    try:
-                        METRICS.IDENTIFY_MATCH_TOTAL.inc()
+                        METRICS.inc_identify_match(best.get("name", "unknown"))
                     except Exception:
                         pass
                 if hasattr(METRICS, "REQUEST_LATENCY"):
