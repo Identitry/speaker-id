@@ -51,4 +51,6 @@ recordings/
 node_modules/
 
 # Claude documentation.
-Claude.md
+CLAUDE.md
+PUBLISHING.md
+github-registry.md

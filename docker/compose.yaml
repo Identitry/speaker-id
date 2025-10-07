@@ -12,9 +12,14 @@ services:
       retries: 5
 
   speaker-id:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    # Option 1: Use pre-built image from GitHub Container Registry (recommended)
+    image: ghcr.io/Identitry/speaker-id:latest
+
+    # Option 2: Build locally (uncomment to use)
+    # build:
+    #   context: ..
+    #   dockerfile: docker/Dockerfile
+
     environment:
       - QDRANT_URL=http://qdrant:6333
       - USE_ECAPA=false
