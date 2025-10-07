@@ -28,25 +28,30 @@ APP = FastAPI(title="speaker-id", lifespan=lifespan)
 
 
 # ----- Prometheus metrics -----
-# Only expose metrics if enabled via settings
-if settings.metrics_enabled:
-    # Instrumentation is idempotent; in tests, multiple app lifecycles won't double-register.
-    instrumentator = Instrumentator(
-        should_respect_env_var=True,  # set PROMETHEUS_MULTIPROC or PROMETHEUS_DISABLED to control behavior
-        excluded_handlers={"/health", "/", "/assets", settings.metrics_path},
-        should_group_status_codes=True,
-        should_ignore_untemplated=True,
-    )
+# Setup metrics instrumentation (always enabled, can be disabled via PROMETHEUS_DISABLED env var)
+instrumentator = Instrumentator(
+    should_respect_env_var=True,  # respect PROMETHEUS_DISABLED env var
+    excluded_handlers=["/health", "/", "/assets", "/metrics"],  # Don't instrument these endpoints
+    should_group_status_codes=True,
+    should_ignore_untemplated=True,
+)
 
-    # Add a few common metrics (request duration, size, etc.)
-    instrumentator \
-        .add(metrics.default()) \
-        .add(metrics.latency()) \
-        .add(metrics.requests()) \
-        .add(metrics.response_size()) \
-        .add(metrics.request_size()) \
-        .instrument(APP) \
-        .expose(APP, endpoint=settings.metrics_path, include_in_schema=False)
+# Add standard prometheus-fastapi-instrumentator metrics
+instrumentator \
+    .add(metrics.default()) \
+    .add(metrics.latency()) \
+    .add(metrics.requests()) \
+    .add(metrics.response_size()) \
+    .add(metrics.request_size()) \
+    .instrument(APP)
+
+# Manually add /metrics endpoint using prometheus_client
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
+@APP.get("/metrics", include_in_schema=False)
+def metrics_endpoint():
+    """Prometheus metrics endpoint"""
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 # ----- Static web UI -----
 WEB_DIR = Path(__file__).parent / "web"
