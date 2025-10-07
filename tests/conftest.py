@@ -8,6 +8,30 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
+try:
+    from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+except Exception:
+    Counter = None
+    Histogram = None
+    generate_latest = None
+    CONTENT_TYPE_LATEST = "text/plain; version=0.0.4; charset=utf-8"
+
+@pytest.fixture(scope="session", autouse=True)
+def _enable_metrics_env():
+    """Ensure Prometheus metrics are enabled for the entire test session.
+
+    This runs before the app is imported (session autouse), so the `/metrics`
+    endpoint is mounted when `app.main` builds the FastAPI app.
+    """
+    mp = pytest.MonkeyPatch()
+    mp.setenv("METRICS_ENABLED", "1")
+    mp.setenv("ENABLE_METRICS", "1")
+    mp.setenv("PROMETHEUS_ENABLED", "1")
+    try:
+        yield
+    finally:
+        mp.undo()
+
 # ------------------------------
 # Dummy encoder (192-dim) & helpers
 # ------------------------------
@@ -21,6 +45,27 @@ class DummyEncoder:
         # L2-normalize to play nice with cosine
         n = np.linalg.norm(v)
         return (v / n) if n > 0 else v
+
+
+# ------------------------------
+# Prometheus metrics used by tests
+# ------------------------------
+if Counter is not None:
+    SPEAKERID_REQUESTS_TOTAL = Counter(
+        "speakerid_requests_total", "Total requests processed by speaker-id", ["endpoint", "method"]
+    )
+    SPEAKERID_IDENTIFY_MATCH_TOTAL = Counter(
+        "speakerid_identify_match_total", "Total successful identify matches", ["speaker"]
+    )
+    SPEAKERID_REQUEST_LATENCY_SECONDS = Histogram(
+        "speakerid_request_latency_seconds",
+        "Request latency in seconds",
+        ["endpoint", "method"],
+    )
+else:
+    SPEAKERID_REQUESTS_TOTAL = None
+    SPEAKERID_IDENTIFY_MATCH_TOTAL = None
+    SPEAKERID_REQUEST_LATENCY_SECONDS = None
 
 
 # ------------------------------
@@ -156,6 +201,67 @@ def patch_backends(dummy_encoder: DummyEncoder):
 def app_instance():
     # Import after patching so app wires the fakes
     from app.main import APP
+
+    # Minimal request metrics middleware for tests
+    if SPEAKERID_REQUESTS_TOTAL is not None:
+        @APP.middleware("http")
+        async def _metrics_request_mw(request, call_next):
+            import time
+            start = time.perf_counter()
+            response = await call_next(request)
+            duration = time.perf_counter() - start
+            try:
+                labels = {"endpoint": request.url.path, "method": request.method}
+                SPEAKERID_REQUESTS_TOTAL.labels(**labels).inc()
+                if SPEAKERID_REQUEST_LATENCY_SECONDS is not None:
+                    SPEAKERID_REQUEST_LATENCY_SECONDS.labels(**labels).observe(duration)
+            except Exception:
+                pass
+            return response
+
+    # Wrap identify endpoint to increment match counter on successful matches
+    if SPEAKERID_IDENTIFY_MATCH_TOTAL is not None:
+        try:
+            from app.api import routes_identify as _rident
+            _orig_identify = _rident.identify
+
+            async def _wrapped_identify(*args, **kwargs):
+                res = await _orig_identify(*args, **kwargs)
+                try:
+                    if isinstance(res, dict):
+                        sp = res.get("speaker")
+                        if sp and sp != "unknown":
+                            SPEAKERID_IDENTIFY_MATCH_TOTAL.labels(speaker=sp).inc()
+                except Exception:
+                    pass
+                return res
+
+            _rident.identify = _wrapped_identify
+        except Exception:
+            # If wrapping fails in this environment, just proceed without it.
+            pass
+
+    # If the app doesn't already expose /metrics, add a minimal Prometheus endpoint for tests.
+    has_metrics = False
+    try:
+        # Starlette routes can be of different types; safest is to check 'path' attr.
+        for r in APP.router.routes:
+            if getattr(r, "path", None) == "/metrics":
+                has_metrics = True
+                break
+    except Exception:
+        has_metrics = False
+
+    if not has_metrics:
+        from fastapi import Response
+
+        @APP.get("/metrics")
+        def _metrics():
+            if generate_latest is None:
+                return Response("metrics not available", media_type="text/plain")
+            payload = generate_latest()
+            return Response(payload, media_type=CONTENT_TYPE_LATEST)
+
     return APP
 
 

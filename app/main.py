@@ -8,8 +8,12 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 
+# Prometheus FastAPI instrumentation
+from prometheus_fastapi_instrumentator import Instrumentator, metrics
+
 from app.api import router as api_router
 from app.core.lifecycle import on_startup, on_shutdown
+from app.core.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,7 +27,26 @@ async def lifespan(app: FastAPI):
 APP = FastAPI(title="speaker-id", lifespan=lifespan)
 
 
+# ----- Prometheus metrics -----
+# Only expose metrics if enabled via settings
+if settings.metrics_enabled:
+    # Instrumentation is idempotent; in tests, multiple app lifecycles won't double-register.
+    instrumentator = Instrumentator(
+        should_respect_env_var=True,  # set PROMETHEUS_MULTIPROC or PROMETHEUS_DISABLED to control behavior
+        excluded_handlers={"/health", "/", "/assets", settings.metrics_path},
+        should_group_status_codes=True,
+        should_ignore_untemplated=True,
+    )
 
+    # Add a few common metrics (request duration, size, etc.)
+    instrumentator \
+        .add(metrics.default()) \
+        .add(metrics.latency()) \
+        .add(metrics.requests()) \
+        .add(metrics.response_size()) \
+        .add(metrics.request_size()) \
+        .instrument(APP) \
+        .expose(APP, endpoint=settings.metrics_path, include_in_schema=False)
 
 # ----- Static web UI -----
 WEB_DIR = Path(__file__).parent / "web"

@@ -34,8 +34,13 @@ class Settings:
     topk: int = int(os.getenv("TOPK", "5"))
     use_ecapa: bool = os.getenv("USE_ECAPA", "false").lower() == "true"
 
+
     # Logging verbosity for the service (DEBUG/INFO/WARNING/ERROR).
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
+
+    # Prometheus metrics settings
+    metrics_enabled: bool = os.getenv("METRICS_ENABLED", "true").lower() == "true"
+    metrics_path: str = os.getenv("METRICS_PATH", "/metrics")
 
 
 # Instantiate a single shared settings object for import across modules.

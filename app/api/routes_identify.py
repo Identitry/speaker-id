@@ -18,6 +18,7 @@ level policies depending on your environment.
 """
 from __future__ import annotations
 import logging
+import time
 
 from fastapi import APIRouter, UploadFile, File, Query, HTTPException
 from app.schemas.identify import IdentifyResult
@@ -26,6 +27,12 @@ from app.core.config import settings
 from app.utils.audio import load_wav_normalized_from_bytes
 from app.services.embeddings import get_encoder
 from app.services.identify import identify_best
+
+# Optional Prometheus metrics (module may be absent in some envs)
+try:
+    from app.observability import metrics as METRICS
+except Exception:  # pragma: no cover - tests may run without metrics
+    METRICS = None
 
 router = APIRouter()
 logger = logging.getLogger("speaker-id")
@@ -59,6 +66,19 @@ async def identify(
           - confidence: float, normalized similarity score
           - topN: list of {name, score} entries for debugging/telemetry
     """
+    # --- metrics: begin
+    _start = time.perf_counter()
+    _labels = {"route": "POST /identify", "method": "POST"}
+    if METRICS is not None and hasattr(METRICS, "INFLIGHT"):
+        try:
+            # Prefer label schema (route, method) if supported
+            try:
+                METRICS.INFLIGHT.labels(**_labels).inc()
+            except Exception:
+                METRICS.INFLIGHT.inc()
+        except Exception:
+            pass
+    # --- metrics: end
     try:
         # Read the raw bytes of the uploaded file into memory
         data = await file.read()
@@ -129,21 +149,128 @@ async def identify(
         except Exception as e:
             logger.info("identify_best failed (likely empty index): %s", e)
             raw = None
-    except HTTPException:
-        # pass through HTTP errors as-is
+    except HTTPException as _http_exc:
+        # record metrics with the HTTP error status then re-raise
+        if METRICS is not None and hasattr(METRICS, "REQUEST_TOTAL"):
+            try:
+                code = getattr(_http_exc, "status_code", 500)
+                try:
+                    METRICS.REQUEST_TOTAL.labels(status=str(code), **_labels).inc()
+                except Exception:
+                    METRICS.REQUEST_TOTAL.inc()
+            except Exception:
+                pass
+        # finalize latency & inflight
+        if METRICS is not None:
+            try:
+                _dur = time.perf_counter() - _start
+                if hasattr(METRICS, "REQUEST_LATENCY"):
+                    try:
+                        METRICS.REQUEST_LATENCY.labels(**_labels).observe(_dur)
+                    except Exception:
+                        METRICS.REQUEST_LATENCY.observe(_dur)
+                if hasattr(METRICS, "INFLIGHT"):
+                    try:
+                        METRICS.INFLIGHT.labels(**_labels).dec()
+                    except Exception:
+                        METRICS.INFLIGHT.dec()
+            except Exception:
+                pass
         raise
     except Exception as e:
         logger.exception("/identify failed: %s", e)
+        # record 500
+        if METRICS is not None and hasattr(METRICS, "REQUEST_TOTAL"):
+            try:
+                try:
+                    METRICS.REQUEST_TOTAL.labels(status="500", **_labels).inc()
+                except Exception:
+                    METRICS.REQUEST_TOTAL.inc()
+            except Exception:
+                pass
+        # finalize latency & inflight
+        if METRICS is not None:
+            try:
+                _dur = time.perf_counter() - _start
+                if hasattr(METRICS, "REQUEST_LATENCY"):
+                    try:
+                        METRICS.REQUEST_LATENCY.labels(**_labels).observe(_dur)
+                    except Exception:
+                        METRICS.REQUEST_LATENCY.observe(_dur)
+                if hasattr(METRICS, "INFLIGHT"):
+                    try:
+                        METRICS.INFLIGHT.labels(**_labels).dec()
+                    except Exception:
+                        METRICS.INFLIGHT.dec()
+            except Exception:
+                pass
         raise HTTPException(500, "Internal error while processing audio")
 
     # No profiles enrolled yet or no hits -> return unknown
     if not raw or not raw.get("topN"):
+        # metrics: unknown but 200 response
+        if METRICS is not None:
+            try:
+                if hasattr(METRICS, "REQUEST_TOTAL"):
+                    try:
+                        METRICS.REQUEST_TOTAL.labels(status="200", **_labels).inc()
+                    except Exception:
+                        METRICS.REQUEST_TOTAL.inc()
+                if hasattr(METRICS, "IDENTIFY_UNKNOWN"):
+                    try:
+                        METRICS.IDENTIFY_UNKNOWN.inc()
+                    except Exception:
+                        pass
+                if hasattr(METRICS, "REQUEST_LATENCY"):
+                    _dur = time.perf_counter() - _start
+                    try:
+                        METRICS.REQUEST_LATENCY.labels(**_labels).observe(_dur)
+                    except Exception:
+                        METRICS.REQUEST_LATENCY.observe(_dur)
+                if hasattr(METRICS, "INFLIGHT"):
+                    try:
+                        METRICS.INFLIGHT.labels(**_labels).dec()
+                    except Exception:
+                        METRICS.INFLIGHT.dec()
+            except Exception:
+                pass
         return IdentifyResult(speaker="unknown", confidence=0.0, topN=[])
 
     # Apply the threshold locally so /identify?threshold=... works even if
     # the backend already filtered (we forced threshold=0.0 above).
     best = raw["topN"][0]
     if best.get("score", 0.0) >= th:
+        # metrics: success (200)
+        if METRICS is not None:
+            try:
+                if hasattr(METRICS, "REQUEST_TOTAL"):
+                    try:
+                        METRICS.REQUEST_TOTAL.labels(status="200", **_labels).inc()
+                    except Exception:
+                        METRICS.REQUEST_TOTAL.inc()
+                if hasattr(METRICS, "IDENTIFY_MATCH"):
+                    try:
+                        METRICS.IDENTIFY_MATCH.labels(speaker=best.get("name", "unknown")).inc()
+                    except Exception:
+                        METRICS.IDENTIFY_MATCH.inc()
+                if hasattr(METRICS, "IDENTIFY_MATCH_TOTAL"):
+                    try:
+                        METRICS.IDENTIFY_MATCH_TOTAL.inc()
+                    except Exception:
+                        pass
+                if hasattr(METRICS, "REQUEST_LATENCY"):
+                    _dur = time.perf_counter() - _start
+                    try:
+                        METRICS.REQUEST_LATENCY.labels(**_labels).observe(_dur)
+                    except Exception:
+                        METRICS.REQUEST_LATENCY.observe(_dur)
+                if hasattr(METRICS, "INFLIGHT"):
+                    try:
+                        METRICS.INFLIGHT.labels(**_labels).dec()
+                    except Exception:
+                        METRICS.INFLIGHT.dec()
+            except Exception:
+                pass
         return IdentifyResult(
             speaker=best.get("name", "unknown"),
             confidence=float(best.get("score", 0.0)),
@@ -159,6 +286,37 @@ async def identify(
         conf = float(best_score) if isinstance(best_score, (int, float)) else 0.0
         if conf < th:
             conf = float(th)
+        # metrics: success (200)
+        if METRICS is not None:
+            try:
+                if hasattr(METRICS, "REQUEST_TOTAL"):
+                    try:
+                        METRICS.REQUEST_TOTAL.labels(status="200", **_labels).inc()
+                    except Exception:
+                        METRICS.REQUEST_TOTAL.inc()
+                if hasattr(METRICS, "IDENTIFY_MATCH"):
+                    try:
+                        METRICS.IDENTIFY_MATCH.labels(speaker=best.get("name", "unknown")).inc()
+                    except Exception:
+                        METRICS.IDENTIFY_MATCH.inc()
+                if hasattr(METRICS, "IDENTIFY_MATCH_TOTAL"):
+                    try:
+                        METRICS.IDENTIFY_MATCH_TOTAL.inc()
+                    except Exception:
+                        pass
+                if hasattr(METRICS, "REQUEST_LATENCY"):
+                    _dur = time.perf_counter() - _start
+                    try:
+                        METRICS.REQUEST_LATENCY.labels(**_labels).observe(_dur)
+                    except Exception:
+                        METRICS.REQUEST_LATENCY.observe(_dur)
+                if hasattr(METRICS, "INFLIGHT"):
+                    try:
+                        METRICS.INFLIGHT.labels(**_labels).dec()
+                    except Exception:
+                        METRICS.INFLIGHT.dec()
+            except Exception:
+                pass
         return IdentifyResult(
             speaker=best.get("name", "unknown"),
             confidence=conf,
@@ -166,6 +324,32 @@ async def identify(
         )
 
     # Otherwise, respect the threshold and return unknown
+    # metrics: unknown but 200 response
+    if METRICS is not None:
+        try:
+            if hasattr(METRICS, "REQUEST_TOTAL"):
+                try:
+                    METRICS.REQUEST_TOTAL.labels(status="200", **_labels).inc()
+                except Exception:
+                    METRICS.REQUEST_TOTAL.inc()
+            if hasattr(METRICS, "IDENTIFY_UNKNOWN"):
+                try:
+                    METRICS.IDENTIFY_UNKNOWN.inc()
+                except Exception:
+                    pass
+            if hasattr(METRICS, "REQUEST_LATENCY"):
+                _dur = time.perf_counter() - _start
+                try:
+                    METRICS.REQUEST_LATENCY.labels(**_labels).observe(_dur)
+                except Exception:
+                    METRICS.REQUEST_LATENCY.observe(_dur)
+            if hasattr(METRICS, "INFLIGHT"):
+                try:
+                    METRICS.INFLIGHT.labels(**_labels).dec()
+                except Exception:
+                    METRICS.INFLIGHT.dec()
+        except Exception:
+            pass
     return IdentifyResult(speaker="unknown", confidence=0.0, topN=raw.get("topN", []))
 
 

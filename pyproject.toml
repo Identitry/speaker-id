@@ -20,6 +20,8 @@ numpy = "^1.26"
 requests = "^2.32.3"
 python-multipart = "^0.0.9"
 resampy = "^0.4.3"
+prometheus-client = "^0.20.0"
+prometheus-fastapi-instrumentator = "^6.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"

@@ -25,6 +25,11 @@ from app.services.embeddings import get_encoder
 
 from app.services.qdrant_repo import upsert_raw_and_update_master
 from app.schemas.common import EnrollResponse, Message
+import time
+try:
+    from app.observability import metrics as METRICS
+except Exception:  # pragma: no cover - metrics optional in tests
+    METRICS = None
 router = APIRouter()
 
 
@@ -98,18 +103,67 @@ async def enroll(
     dict
         { "ok": true, "name": <user name> }
     """
+    # Observability: start timing and mark in-flight if metrics are available
+    _metrics_labels = {"route": "enroll", "method": "POST"}
+    _inflight_marked = False
+    _t0 = time.perf_counter()
+    if METRICS is not None and hasattr(METRICS, "INFLIGHT"):
+        try:
+            METRICS.INFLIGHT.labels(**_metrics_labels).inc()
+            _inflight_marked = True
+        except Exception:
+            # Fallback to unlabeled inc if label schema differs
+            try:
+                METRICS.INFLIGHT.inc()
+                _inflight_marked = True
+            except Exception:
+                pass
+
     data = await file.read()
     # Normalize channels/sample rate according to runtime settings
     wav = load_wav_normalized_from_bytes(data)
     # Embed with selected backend (ECAPA when USE_ECAPA=true, else Resemblyzer)
     encoder = get_encoder()
+    _status = "ok"
     try:
         vec = _run_embedding(encoder, wav)
+        upsert_raw_and_update_master(name=name, vec=vec)
+        return {"ok": True, "name": name}
     except Exception as e:
+        _status = "error"
         # Align error messaging with identify route for consistency
         raise HTTPException(status_code=500, detail=str(e) or "Failed to compute embedding for audio")
-    upsert_raw_and_update_master(name=name, vec=vec)
-    return {"ok": True, "name": name}
+    finally:
+        # Record request counters and latency if metrics are available
+        if METRICS is not None:
+            duration = time.perf_counter() - _t0
+            # Counter for enroll requests
+            if hasattr(METRICS, "ENROLL_REQUESTS"):
+                try:
+                    METRICS.ENROLL_REQUESTS.labels(status=_status).inc()
+                except Exception:
+                    try:
+                        METRICS.ENROLL_REQUESTS.inc()
+                    except Exception:
+                        pass
+            # Histogram / Summary for latency
+            if hasattr(METRICS, "REQUEST_LATENCY"):
+                try:
+                    METRICS.REQUEST_LATENCY.labels(route="enroll", method="POST", status=_status).observe(duration)
+                except Exception:
+                    try:
+                        METRICS.REQUEST_LATENCY.observe(duration)
+                    except Exception:
+                        pass
+            # Decrement in-flight
+            if _inflight_marked and hasattr(METRICS, "INFLIGHT"):
+                try:
+                    METRICS.INFLIGHT.labels(**_metrics_labels).dec()
+                except Exception:
+                    try:
+                        METRICS.INFLIGHT.dec()
+                    except Exception:
+                        pass
 
 
 @router.post("/reset", response_model=Message)

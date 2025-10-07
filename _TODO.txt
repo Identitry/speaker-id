@@ -1,13 +1,13 @@
 
 Detta behöver vi ta tag i:
-1. Inställning för samplingsfrekvens stereo/mono
-2. Tester (alla tester är tomma)
-3. .gitignore
-4. LICENSE
+1. Inställning för samplingsfrekvens stereo/mono - klart!
+2. Tester (alla tester är tomma) - klart
+3. .gitignore -klart
+4. LICENSE -klart
 5. Städa upp onödigt
-6. Publicera källkod på Github
+6. Publicera källkod på Github -klart
 7. Iterera all kod för ev. förbättringar
-8. Swagger, förbättra?
+8. Swagger - klart!
 9. Web UI, är allt med... kan vi hoppa mellan Resemblyzer och ECAPA som en inställning
 10. Web UI, få till ett riktigt snyggt gränssnitt (Ta hjälp av annan AI tjänst så som Lovable eller ?)
 11. WebUI, Thresholds som inställning?
