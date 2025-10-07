@@ -17,7 +17,9 @@ RUN pip install --no-cache-dir poetry && \
     poetry install --no-root --no-interaction --no-ansi --only main
 
 # Pre-download Resemblyzer model to avoid first-request delay
-RUN python -c "from resemblyzer import VoiceEncoder; VoiceEncoder()"
+RUN python -c "from resemblyzer import VoiceEncoder; VoiceEncoder()" && \
+    echo "Model cache created at:" && \
+    find /root -name "*.pt" -o -name "*.pth" 2>/dev/null || echo "No .pt files found"
 
 # Final stage
 FROM python:3.11-slim
@@ -34,11 +36,12 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy Resemblyzer model cache from builder
-COPY --from=builder /root/.torch /root/.torch
-
-# Copy application code
+# Copy application code first
 COPY app /app/app
+
+# Download model on first run since pre-caching isn't reliable across stages
+# The model will be downloaded on container startup if not present
+ENV TORCH_HOME=/root/.torch
 
 # Expose port
 EXPOSE 8080
