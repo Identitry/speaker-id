@@ -54,17 +54,19 @@ def metrics_endpoint():
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 # ----- Static web UI -----
-WEB_DIR = Path(__file__).parent / "web"
-if WEB_DIR.exists():
-    APP.mount("/assets", StaticFiles(directory=str(WEB_DIR)), name="assets")
+STATIC_DIR = Path(__file__).parent / "static"
+if STATIC_DIR.exists():
+    # Mount static files (CSS, JS, images)
+    APP.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @APP.get("/", response_class=HTMLResponse)
 def index() -> Response:
-    index_path = WEB_DIR / "index.html"
+    """Serve the main web interface"""
+    index_path = STATIC_DIR / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
-    return HTMLResponse("<h1>speaker-id</h1><p>Web UI not found.</p>")
+    return HTMLResponse("<h1>speaker-id</h1><p>Web UI not found. Static files should be in app/static/</p>")
 
 
 # ----- Health endpoints -----

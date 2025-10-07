@@ -103,12 +103,25 @@ If you prefer more control or already have a Qdrant database:
 
 ### Web Interface
 
-The easiest way to enroll voices and test identification:
+**Modern, user-friendly interface** with dark blue/violet theme.
 
-1. Open your browser to `http://localhost:8080`
-2. Click "Enroll Speaker"
-3. Upload a voice recording or record directly
-4. Test identification with new voice samples
+Open your browser to `http://localhost:8080`
+
+**Features**:
+- 🎯 **Identify** - Upload or record audio to identify speakers
+- ➕ **Enroll** - Add new speakers with multiple voice samples
+- 👥 **Manage** - View and delete enrolled speakers
+- ⚙️ **Settings** - System configuration and maintenance
+- 📡 **API** - Documentation and code examples
+
+**Key Features**:
+- Record directly from microphone or upload files
+- Adjustable confidence threshold with slider
+- Visual results with confidence bars
+- Bulk speaker management
+- Real-time status indicators
+
+See [Web Interface Guide](docs/web-interface.md) for complete details.
 
 ### Command Line (for automation)
 
@@ -328,6 +341,7 @@ When identifying a speaker, you get a **confidence score** between 0 and 1:
 
 ## 📚 Documentation
 
+- **[Web Interface Guide](docs/web-interface.md)** - Using the modern web UI
 - **[API Reference](docs/api.md)** - Complete API documentation with examples
 - **[Home Assistant Integration](docs/ha-integration.md)** - Detailed integration guide with Assist Pipeline
 - **[AI Models Guide](docs/models.md)** - Model selection, performance, and troubleshooting
