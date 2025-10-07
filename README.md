@@ -133,6 +133,11 @@ Open your browser to `http://localhost:8080`
 
 See [Web Interface Guide](docs/web-interface.md) for complete details.
 
+**Screenshots**
+![Identify screen](./docs/img/screenshot_identitfy.png)
+
+![Enroll screen](./docs/img/screenshot_enroll.png)
+
 ### Command Line (for automation)
 
 **Enroll a new speaker**:
