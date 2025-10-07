@@ -49,3 +49,6 @@ recordings/
 
 # Node (om/ när du bygger web)
 node_modules/
+
+# Claude documentation.
+Claude.md

@@ -25,7 +25,7 @@ REQUEST_LATENCY = Histogram(
 
 # Aggregate counter for successful identify matches (no labels).
 IDENTIFY_MATCH_TOTAL = Counter(
-    "speakerid_identify_match",
+    "speakerid_identify_match_total",
     "Total number of successful identify matches across all speakers",
     registry=REGISTRY,
 )

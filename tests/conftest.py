@@ -50,19 +50,14 @@ class DummyEncoder:
 # ------------------------------
 # Prometheus metrics used by tests
 # ------------------------------
-if Counter is not None:
-    SPEAKERID_REQUESTS_TOTAL = Counter(
-        "speakerid_requests_total", "Total requests processed by speaker-id", ["endpoint", "method"]
-    )
-    SPEAKERID_IDENTIFY_MATCH_TOTAL = Counter(
-        "speakerid_identify_match_total", "Total successful identify matches", ["speaker"]
-    )
-    SPEAKERID_REQUEST_LATENCY_SECONDS = Histogram(
-        "speakerid_request_latency_seconds",
-        "Request latency in seconds",
-        ["endpoint", "method"],
-    )
-else:
+# NOTE: We no longer define metrics here; instead we import from app.observability.metrics
+# to avoid duplicate registration errors. The real metrics module is the source of truth.
+try:
+    from app.observability import metrics as real_metrics
+    SPEAKERID_REQUESTS_TOTAL = getattr(real_metrics, 'REQUESTS', None)
+    SPEAKERID_IDENTIFY_MATCH_TOTAL = getattr(real_metrics, 'IDENTIFY_MATCH_TOTAL', None)
+    SPEAKERID_REQUEST_LATENCY_SECONDS = getattr(real_metrics, 'REQUEST_LATENCY', None)
+except Exception:
     SPEAKERID_REQUESTS_TOTAL = None
     SPEAKERID_IDENTIFY_MATCH_TOTAL = None
     SPEAKERID_REQUEST_LATENCY_SECONDS = None
@@ -211,35 +206,21 @@ def app_instance():
             response = await call_next(request)
             duration = time.perf_counter() - start
             try:
-                labels = {"endpoint": request.url.path, "method": request.method}
-                SPEAKERID_REQUESTS_TOTAL.labels(**labels).inc()
+                # Use the correct label names for the real metrics module
+                # REQUESTS uses: path, method, status
+                # REQUEST_LATENCY uses: path, method
+                path = request.url.path
+                method = request.method
+                status = str(response.status_code)
+                SPEAKERID_REQUESTS_TOTAL.labels(path=path, method=method, status=status).inc()
                 if SPEAKERID_REQUEST_LATENCY_SECONDS is not None:
-                    SPEAKERID_REQUEST_LATENCY_SECONDS.labels(**labels).observe(duration)
+                    SPEAKERID_REQUEST_LATENCY_SECONDS.labels(path=path, method=method).observe(duration)
             except Exception:
                 pass
             return response
 
-    # Wrap identify endpoint to increment match counter on successful matches
-    if SPEAKERID_IDENTIFY_MATCH_TOTAL is not None:
-        try:
-            from app.api import routes_identify as _rident
-            _orig_identify = _rident.identify
-
-            async def _wrapped_identify(*args, **kwargs):
-                res = await _orig_identify(*args, **kwargs)
-                try:
-                    if isinstance(res, dict):
-                        sp = res.get("speaker")
-                        if sp and sp != "unknown":
-                            SPEAKERID_IDENTIFY_MATCH_TOTAL.labels(speaker=sp).inc()
-                except Exception:
-                    pass
-                return res
-
-            _rident.identify = _wrapped_identify
-        except Exception:
-            # If wrapping fails in this environment, just proceed without it.
-            pass
+    # The identify endpoint now handles metrics internally via app.observability.metrics
+    # No need to wrap it here anymore
 
     # If the app doesn't already expose /metrics, add a minimal Prometheus endpoint for tests.
     has_metrics = False
